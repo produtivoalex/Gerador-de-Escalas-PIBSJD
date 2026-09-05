@@ -1,0 +1,5 @@
+{
+  "name": "CultoGen AI",
+  "description": "Gerenciador inteligente de escalas de culto utilizando Gemini AI para personalização e automação.",
+  "requestFramePermissions": []
+}
