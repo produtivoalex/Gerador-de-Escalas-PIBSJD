@@ -13,7 +13,7 @@ Aplicativo inteligente para gerenciamento e geração automática de escalas da 
 
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/aldonks/Gerador-de-Escalas-PIBSJD.git
+   git clone https://github.com/produtivoalex/Gerador-de-Escalas-PIBSJD.git
    cd Gerador-de-Escalas-PIBSJD
    ```
 2. Instale as dependências:
@@ -32,7 +32,7 @@ Aplicativo inteligente para gerenciamento e geração automática de escalas da 
 ## Como Publicar no Cloudflare Pages
 
 1. No painel do [Cloudflare](https://dash.cloudflare.com/), vá em **Workers & Pages** > **Create application** > **Pages** > **Connect to Git**.
-2. Selecione o repositório `aldonks/Gerador-de-Escalas-PIBSJD`.
+2. Selecione o repositório `produtivoalex/Gerador-de-Escalas-PIBSJD`.
 3. Configurações de Build:
    - **Framework preset:** `Vite`
    - **Build command:** `npm run build`
