@@ -1,0 +1,12 @@
+import { randomBytes, scryptSync } from 'node:crypto';
+import { writeFileSync, existsSync } from 'node:fs';
+import { loadEnv } from 'vite';
+const origin = process.argv[2];
+if (!origin || new URL(origin).origin !== origin || !origin.startsWith('https://')) throw new Error('Informe a origem HTTPS exata.');
+if (existsSync('.env.production.local') || existsSync('ACESSO-VPS.local')) throw new Error('Credenciais existentes preservadas. Use os arquivos já preparados.');
+const env = loadEnv('production', process.cwd(), 'GEMINI_');
+const username = 'produtivoalex', password = randomBytes(24).toString('base64url'), salt = randomBytes(16).toString('hex');
+const hash = salt + ':' + scryptSync(password, salt, 64).toString('hex');
+writeFileSync('.env.production.local', [`APP_ORIGIN=${origin}`, `ADMIN_USERNAME=${username}`, `ADMIN_PASSWORD_HASH=${hash}`, `GEMINI_API_KEY=${env.GEMINI_API_KEY || ''}`, `GEMINI_MODEL=${env.GEMINI_MODEL || 'gemini-3.6-flash'}`, 'AI_HOURLY_LIMIT=20', 'AI_DAILY_LIMIT=100', ''].join('\n'), { mode: 0o600 });
+writeFileSync('ACESSO-VPS.local', `CultoGen — acesso privado\n\nEndereço: ${origin}\nUsuário: ${username}\nSenha: ${password}\n\nGuarde em seu gerenciador de senhas. Este arquivo e a configuração de produção ficam fora do Git.\n`, { mode: 0o600 });
+console.log('Configuração e acesso gerados em arquivos locais ignorados pelo Git.');

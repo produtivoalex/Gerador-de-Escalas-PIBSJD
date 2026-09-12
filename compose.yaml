@@ -1,0 +1,22 @@
+services:
+  cultogen:
+    build: .
+    image: cultogen:local
+    restart: unless-stopped
+    env_file: .env.production.local
+    ports:
+      - "127.0.0.1:3210:3000"
+    volumes:
+      - cultogen-data:/data
+    init: true
+    mem_limit: 512m
+    cpus: 1.0
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+volumes:
+  cultogen-data:

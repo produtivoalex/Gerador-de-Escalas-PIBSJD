@@ -8,7 +8,6 @@ interface CalendarGridProps {
   config: UIConfig;
   onDateClick: (dateStr: string) => void;
   onEventClick: (event: ChurchEvent) => void;
-  onDeleteEvent: (eventId: string) => void;
 }
 
 const CalendarGrid: React.FC<CalendarGridProps> = ({ 
@@ -111,16 +110,17 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
                 >
                   {day && (
                     <>
-                      <span className={`font-bold mb-1 block leading-none ${isSunday ? 'text-[#DC2626]' : 'text-gray-900'}`} style={{ fontSize: `${config.fontSizeDayNumber}px` }}>{String(day).padStart(2, '0')}</span>
+                      <button type="button" aria-label={`Adicionar culto em ${day}/${month + 1}/${year}`} className={`font-bold mb-1 block leading-none text-left ${isSunday ? 'text-[#DC2626]' : 'text-gray-900'}`} style={{ fontSize: `${config.fontSizeDayNumber}px` }} onClick={e => { e.stopPropagation(); onDateClick(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`); }}>{String(day).padStart(2, '0')}</button>
                       <div className="flex flex-col gap-1 flex-1 w-full justify-center">
                         {dayEvents.map(event => {
                           const colors = getEventColors(event);
                           const isPGM = event.type === ServiceType.DOMICILIAR;
                           return (
-                            <div 
+                            <button type="button"
                               key={event.id} 
                               onClick={(e) => { e.stopPropagation(); onEventClick(event); }} 
-                              className="relative flex flex-col group border w-full transition-all" 
+                              aria-label={`Editar ${event.customTitle || event.type} em ${day}/${month + 1}/${year}, dirigente ${event.leader || 'não definido'}`}
+                              className="relative flex flex-col group border w-full transition-all text-left"
                               style={{ 
                                 backgroundColor: colors.backgroundColor, 
                                 borderColor: `${colors.titleColor}20`, 
@@ -150,7 +150,7 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
                                   </div>
                                 )}
                               </div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>

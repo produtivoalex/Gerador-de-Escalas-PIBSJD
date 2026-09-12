@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+[hidden] { display: none !important; }
+
+:focus-visible { outline: 3px solid #2563eb !important; outline-offset: 3px; }
+body { height: 100dvh; }
+dialog::backdrop { background: rgb(0 0 0 / 50%); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+@media (max-width: 640px) {
+  header button { min-height: 40px; }
+  dialog button { min-height: 40px; }
+}

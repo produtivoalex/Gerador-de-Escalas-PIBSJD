@@ -1,0 +1,8 @@
+[Unit]
+Description=Backup SQLite do CultoGen
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker exec cultogen-cultogen-1 node dist-server/backup.mjs

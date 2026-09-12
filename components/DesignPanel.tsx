@@ -25,7 +25,7 @@ const DesignPanel: React.FC<DesignPanelProps> = ({ config, onChange, onReset, on
 
   const SectionHeader = ({ id, label, icon: Icon }: { id: string, label: string, icon: any }) => (
     <button 
-      onClick={() => toggle(id)}
+      aria-expanded={!!openSections[id]} onClick={() => toggle(id)}
       className="w-full flex justify-between items-center py-3 px-4 bg-white hover:bg-gray-50 transition-colors border-b border-gray-100"
     >
       <div className="flex items-center gap-2">
@@ -61,11 +61,11 @@ const DesignPanel: React.FC<DesignPanelProps> = ({ config, onChange, onReset, on
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
                   <label className="text-[7px] font-bold text-gray-400 uppercase">Fundo</label>
-                  <input type="color" value={config.headerBgColor} onChange={(e) => update('headerBgColor', e.target.value)} className="w-full h-8 rounded border-0 p-0 cursor-pointer" />
+                  <input aria-label="Fundo do cabeçalho" type="color" value={config.headerBgColor} onChange={(e) => update('headerBgColor', e.target.value)} className="w-full h-8 rounded border-0 p-0 cursor-pointer" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[7px] font-bold text-gray-400 uppercase">Texto</label>
-                  <input type="color" value={config.headerTextColor} onChange={(e) => update('headerTextColor', e.target.value)} className="w-full h-8 rounded border-0 p-0 cursor-pointer" />
+                  <input aria-label="Texto do cabeçalho" type="color" value={config.headerTextColor} onChange={(e) => update('headerTextColor', e.target.value)} className="w-full h-8 rounded border-0 p-0 cursor-pointer" />
                 </div>
               </div>
             </div>
@@ -88,15 +88,15 @@ const DesignPanel: React.FC<DesignPanelProps> = ({ config, onChange, onReset, on
                 <div className="grid grid-cols-3 gap-2">
                   <div className="flex flex-col gap-1">
                     <label className="text-[7px] font-bold text-gray-400 uppercase">Título</label>
-                    <input type="color" value={config[item.title as keyof UIConfig] as string} onChange={(e) => update(item.title as keyof UIConfig, e.target.value)} className="w-full h-8 rounded border-0 p-0 cursor-pointer" />
+                    <input aria-label={`Título de ${item.label}`} type="color" value={config[item.title as keyof UIConfig] as string} onChange={(e) => update(item.title as keyof UIConfig, e.target.value)} className="w-full h-8 rounded border-0 p-0 cursor-pointer" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-[7px] font-bold text-gray-400 uppercase">Texto</label>
-                    <input type="color" value={config[item.text as keyof UIConfig] as string} onChange={(e) => update(item.text as keyof UIConfig, e.target.value)} className="w-full h-8 rounded border-0 p-0 cursor-pointer" />
+                    <input aria-label={`Texto de ${item.label}`} type="color" value={config[item.text as keyof UIConfig] as string} onChange={(e) => update(item.text as keyof UIConfig, e.target.value)} className="w-full h-8 rounded border-0 p-0 cursor-pointer" />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-[7px] font-bold text-gray-400 uppercase">Fundo</label>
-                    <input type="color" value={config[item.bg as keyof UIConfig] as string} onChange={(e) => update(item.bg as keyof UIConfig, e.target.value)} className="w-full h-8 rounded border-0 p-0 cursor-pointer" />
+                    <input aria-label={`Fundo de ${item.label}`} type="color" value={config[item.bg as keyof UIConfig] as string} onChange={(e) => update(item.bg as keyof UIConfig, e.target.value)} className="w-full h-8 rounded border-0 p-0 cursor-pointer" />
                   </div>
                 </div>
               </div>
@@ -121,7 +121,7 @@ const DesignPanel: React.FC<DesignPanelProps> = ({ config, onChange, onReset, on
                   <label className="text-[8px] font-black text-gray-500 uppercase">{item.label}</label>
                   <span className="text-[9px] text-gray-400 font-mono">{config[item.key as keyof UIConfig]}px</span>
                 </div>
-                <input type="range" min="6" max="60" value={config[item.key as keyof UIConfig] as number} onChange={(e) => update(item.key as keyof UIConfig, parseInt(e.target.value))} className="w-full h-1 bg-gray-200 rounded-lg accent-primary" />
+                <input aria-label={item.label} type="range" min="6" max="60" value={config[item.key as keyof UIConfig] as number} onChange={(e) => update(item.key as keyof UIConfig, parseInt(e.target.value))} className="w-full h-1 bg-gray-200 rounded-lg accent-primary" />
               </div>
             ))}
           </div>
@@ -142,7 +142,7 @@ const DesignPanel: React.FC<DesignPanelProps> = ({ config, onChange, onReset, on
                   <label className="text-[8px] font-black text-gray-500 uppercase">{item.label}</label>
                   <span className="text-[9px] text-gray-400 font-mono">{config[item.key as keyof UIConfig]}px</span>
                 </div>
-                <input type="range" min="0" max="100" value={config[item.key as keyof UIConfig] as number} onChange={(e) => update(item.key as keyof UIConfig, parseInt(e.target.value))} className="w-full h-1 bg-gray-200 rounded-lg accent-primary" />
+                <input aria-label={item.label} type="range" min="0" max="100" value={config[item.key as keyof UIConfig] as number} onChange={(e) => update(item.key as keyof UIConfig, parseInt(e.target.value))} className="w-full h-1 bg-gray-200 rounded-lg accent-primary" />
               </div>
             ))}
           </div>
@@ -160,7 +160,7 @@ const DesignPanel: React.FC<DesignPanelProps> = ({ config, onChange, onReset, on
                   <label className="text-[8px] font-black text-gray-500 uppercase">{item.label}</label>
                   <span className="text-[9px] text-gray-400 font-mono">{config[item.key as keyof UIConfig]}</span>
                 </div>
-                <input type="range" min={item.min} max={item.max} value={config[item.key as keyof UIConfig] as number} onChange={(e) => update(item.key as keyof UIConfig, parseInt(e.target.value))} className="w-full h-1 bg-gray-200 rounded-lg accent-primary" />
+                <input aria-label={item.label} type="range" min={item.min} max={item.max} value={config[item.key as keyof UIConfig] as number} onChange={(e) => update(item.key as keyof UIConfig, parseInt(e.target.value))} className="w-full h-1 bg-gray-200 rounded-lg accent-primary" />
               </div>
             ))}
           </div>

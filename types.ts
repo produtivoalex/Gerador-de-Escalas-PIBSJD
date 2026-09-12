@@ -80,3 +80,21 @@ export interface AIResponse {
   suggestedMonth?: string;
   updatedConfig?: Partial<UIConfig>;
 }
+
+export interface AIRequest {
+  command: string;
+  allEvents: ChurchEvent[];
+  currentMonth: string;
+  availablePeople: string[];
+  currentConfig: UIConfig;
+  attachment?: { data: string; mimeType: string };
+}
+
+export interface AppData {
+  events: ChurchEvent[];
+  people: string[];
+  config: UIConfig;
+  defaultConfig: UIConfig;
+  messages: ChatMessage[];
+  lastDate: string;
+}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, Edit2, Check, Save, Users } from 'lucide-react';
 import { ChurchEvent, ServiceType } from '../types';
 
@@ -8,6 +8,7 @@ interface EventEditorProps {
   date: string;
   event?: ChurchEvent;
   onSave: (event: ChurchEvent) => void;
+  onDelete: (id: string) => void;
   people: string[];
   onUpdatePeople: (people: string[]) => void;
 }
@@ -18,6 +19,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
   date, 
   event, 
   onSave, 
+  onDelete,
   people, 
   onUpdatePeople 
 }) => {
@@ -31,6 +33,14 @@ const EventEditor: React.FC<EventEditorProps> = ({
   const [newPersonName, setNewPersonName] = useState('');
   const [editingPersonIndex, setEditingPersonIndex] = useState<number | null>(null);
   const [editingPersonName, setEditingPersonName] = useState('');
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previous = document.activeElement as HTMLElement | null;
+    dialogRef.current?.showModal();
+    return () => { dialogRef.current?.close(); previous?.focus(); };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -72,7 +82,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
 
   const handleSave = () => {
     onSave({
-      id: event?.id || Date.now().toString(),
+      id: event?.id || crypto.randomUUID(),
       date,
       type,
       customTitle: type === ServiceType.OUTRO ? customTitle : undefined,
@@ -117,11 +127,11 @@ const EventEditor: React.FC<EventEditorProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:hidden">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+    <dialog ref={dialogRef} aria-labelledby="editor-title" onCancel={onClose} className="p-0 rounded-xl w-[calc(100%-2rem)] max-w-lg backdrop:bg-black/50 print:hidden">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90dvh] flex flex-col overflow-hidden">
         <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
           <div>
-            <h3 className="text-lg font-bold text-gray-900 capitalize">{formattedDate}</h3>
+            <h3 id="editor-title" className="text-lg font-bold text-gray-900 capitalize">{formattedDate}</h3>
             <p className="text-xs text-gray-500">{isManagingPeople ? 'Gerenciar Nomes' : 'Editar Escala'}</p>
           </div>
           <div className="flex gap-2">
@@ -134,7 +144,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
                 <Users size={16} /> Gerenciar Nomes
               </button>
             )}
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <button aria-label="Fechar editor" onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
               <X size={20} />
             </button>
           </div>
@@ -155,14 +165,14 @@ const EventEditor: React.FC<EventEditorProps> = ({
               <div className="flex gap-2">
                 <input
                   type="text"
-                  value={newPersonName}
+                  aria-label="Novo nome" value={newPersonName}
                   onChange={(e) => setNewPersonName(e.target.value)}
                   placeholder="Novo nome..."
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm text-gray-900"
                   onKeyDown={(e) => e.key === 'Enter' && handleAddPerson()}
                 />
                 <button 
-                  onClick={handleAddPerson}
+                  aria-label="Adicionar nome" onClick={handleAddPerson}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                 >
                   <Plus size={18} />
@@ -176,27 +186,27 @@ const EventEditor: React.FC<EventEditorProps> = ({
                       <div className="flex items-center gap-2 flex-1">
                         <input
                           type="text"
-                          value={editingPersonName}
+                          aria-label="Editar nome" value={editingPersonName}
                           onChange={(e) => setEditingPersonName(e.target.value)}
                           className="flex-1 px-2 py-1 border border-indigo-300 rounded text-sm outline-none text-gray-900"
                           autoFocus
                           onKeyDown={(e) => e.key === 'Enter' && saveEditPerson(idx)}
                         />
-                        <button onClick={() => saveEditPerson(idx)} className="text-green-600 hover:bg-green-50 p-1 rounded"><Check size={16}/></button>
-                        <button onClick={() => setEditingPersonIndex(null)} className="text-gray-400 hover:bg-gray-100 p-1 rounded"><X size={16}/></button>
+                        <button aria-label="Salvar nome" onClick={() => saveEditPerson(idx)} className="text-green-600 hover:bg-green-50 p-1 rounded"><Check size={16}/></button>
+                        <button aria-label="Cancelar edição do nome" onClick={() => setEditingPersonIndex(null)} className="text-gray-400 hover:bg-gray-100 p-1 rounded"><X size={16}/></button>
                       </div>
                     ) : (
                       <>
                         <span className="text-gray-900 text-sm">{person}</span>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 opacity-100 transition-opacity">
                           <button 
-                            onClick={() => startEditPerson(idx)}
+                            aria-label={`Editar nome ${person}`} onClick={() => startEditPerson(idx)}
                             className="p-1 text-blue-500 hover:bg-blue-50 rounded"
                           >
                             <Edit2 size={14} />
                           </button>
                           <button 
-                            onClick={() => handleDeletePerson(person)}
+                            aria-label={`Excluir nome ${person}`} onClick={() => handleDeletePerson(person)}
                             className="p-1 text-red-500 hover:bg-red-50 rounded"
                           >
                             <Trash2 size={14} />
@@ -213,7 +223,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tipo de Culto</label>
                 <select 
-                  value={type}
+                  aria-label="Tipo de Culto" value={type}
                   onChange={(e) => setType(e.target.value as ServiceType)}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900"
                 >
@@ -230,7 +240,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={customTitle}
+                    aria-label="Nome do Evento" value={customTitle}
                     onChange={(e) => setCustomTitle(e.target.value)}
                     placeholder="Ex: Culto de Missões"
                     className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900"
@@ -244,7 +254,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
                 </label>
                 <div className="relative">
                   <select
-                    value={leader}
+                    aria-label="Dirigente" value={leader}
                     onChange={(e) => setLeader(e.target.value)}
                     className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm appearance-none focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900"
                   >
@@ -262,7 +272,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
                 </label>
                 <div className="relative">
                   <select
-                    value={preacher}
+                    aria-label="Pregador" value={preacher}
                     onChange={(e) => setPreacher(e.target.value)}
                     className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm appearance-none focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900"
                   >
@@ -279,7 +289,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
                   Observações
                 </label>
                 <textarea
-                  value={notes}
+                  aria-label="Observações" value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
                   className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-gray-900"
@@ -291,7 +301,10 @@ const EventEditor: React.FC<EventEditorProps> = ({
         </div>
 
         {!isManagingPeople && (
-          <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+          <div className="p-4 bg-gray-50 border-t border-gray-100 flex flex-wrap justify-end gap-3">
+            {event && <button className="mr-auto px-3 py-2 text-sm text-red-700 hover:bg-red-50 rounded-lg" onClick={() => {
+              if (confirm('Excluir este culto da escala?')) { onDelete(event.id); onClose(); }
+            }}>Excluir culto</button>}
             <button 
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -307,7 +320,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </dialog>
   );
 };
 
