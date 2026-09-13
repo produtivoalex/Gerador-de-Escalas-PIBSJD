@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { scryptSync } from 'node:crypto';
+import { createHmac, randomBytes, scryptSync } from 'node:crypto';
 import { createAppServer } from '../server/vps';
 import { defaultData } from '../services/storage';
 import { openDatabase, writeState, readState } from '../server/database';
@@ -43,10 +43,10 @@ test('SQLite rejects stale edits and keeps the last 30 restorable versions isola
   } finally { db.close(); }
 });
 
-test('VPS requires login, rejects CSRF, synchronizes with revision checks, limits AI and invalidates logout', async () => {
-  const salt = 'a'.repeat(32), password = 'test-only-password';
+test('PIN setup, three-failure email recovery, CSRF, sync, quotas, version history and logout', async () => {
   const origin = 'http://127.0.0.1:3199';
-  const server = createAppServer({ APP_ORIGIN: origin, ADMIN_USERNAME: 'alex', ADMIN_PASSWORD_HASH: salt + ':' + scryptSync(password, salt, 64).toString('hex'), DATABASE_PATH: ':memory:', AI_DAILY_LIMIT: '1' });
+  const pepper = 'c'.repeat(64); let emailedCode = '', now = Date.now();
+  const server = createAppServer({ APP_ORIGIN: origin, ADMIN_USERNAME: 'alex', RECOVERY_EMAIL: 'produtivoalex@gmail.com', OTP_PEPPER: pepper, DATABASE_PATH: ':memory:', AI_DAILY_LIMIT: '1' }, async (address, code) => { assert.equal(address, 'produtivoalex@gmail.com'); emailedCode = code; }, () => now);
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const base = 'http://127.0.0.1:' + (server.address() as any).port;
   let cookie = '';
@@ -54,11 +54,23 @@ test('VPS requires login, rejects CSRF, synchronizes with revision checks, limit
   try {
     assert.equal((await call('/api/state')).status, 401);
     assert.equal((await call('/api/generate', 'POST', {})).status, 401);
-    assert.equal((await call('/api/login', 'POST', { username: 'alex', password }, 'https://evil.example')).status, 403);
-    assert.equal((await call('/api/login', 'POST', { username: 'alex', password: 'wrong' })).status, 401);
-    const login = await call('/api/login', 'POST', { username: 'alex', password });
-    assert.equal(login.status, 200); cookie = login.headers.get('set-cookie')!.split(';')[0];
-    assert.ok(login.headers.get('set-cookie')!.includes('HttpOnly'));
+    assert.equal((await call('/api/login', 'POST', { pin: '1234' }, 'https://evil.example')).status, 403);
+    assert.equal((await (await call('/api/session')).json()).setupRequired, true);
+    assert.equal((await call('/api/email/send', 'POST', { purpose: 'setup' })).status, 200);
+    const wrongCode = await call('/api/email/verify', 'POST', { code: '000000' });
+    if (emailedCode !== '000000') assert.equal(wrongCode.status, 401);
+    const verify = await call('/api/email/verify', 'POST', { code: emailedCode });
+    assert.equal(verify.status, 200); assert.equal((await verify.json()).setupRequired, true);
+    cookie = verify.headers.get('set-cookie')!.split(';')[0]; assert.ok(verify.headers.get('set-cookie')!.includes('HttpOnly'));
+    assert.equal((await call('/api/pin/set', 'POST', { pin: '0426', confirmation: '9999' })).status, 400);
+    assert.equal((await call('/api/pin/set', 'POST', { pin: '0426', confirmation: '0426' })).status, 200);
+    const logoutSetup = await call('/api/logout', 'POST', {}); assert.equal(logoutSetup.status, 200); cookie = '';
+    now += 61000;
+    for (let attempt = 0; attempt < 3; attempt++) assert.equal((await call('/api/login', 'POST', { pin: '9999' })).status, 401);
+    const denied = await call('/api/login', 'POST', { pin: '0426' }); assert.equal((await denied.json()).recoveryAvailable, true);
+    assert.equal((await call('/api/email/send', 'POST', { purpose: 'recovery' })).status, 200);
+    const recovery = await call('/api/email/verify', 'POST', { code: emailedCode }); assert.equal(recovery.status, 200);
+    cookie = recovery.headers.get('set-cookie')!.split(';')[0]; assert.ok(recovery.headers.get('set-cookie')!.includes('Secure') === false);
     assert.equal((await call('/api/session').then(r => r.json())).username, 'alex');
     const data = defaultData();
     assert.equal((await call('/api/state', 'PUT', { version: 0, data })).status, 200);
@@ -69,7 +81,7 @@ test('VPS requires login, rejects CSRF, synchronizes with revision checks, limit
     assert.deepEqual((await call('/api/versions/1').then(r => r.json())).data, data);
     assert.equal((await call('/api/generate', 'POST', {})).status, 400);
     assert.equal((await call('/api/generate', 'POST', {})).status, 429);
-    assert.equal((await call('/api/logout', 'POST', {})).status, 200);
+    assert.equal((await call('/api/logout', 'POST', {})).status, 200); cookie = '';
     assert.equal((await call('/api/state')).status, 401);
   } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
 });

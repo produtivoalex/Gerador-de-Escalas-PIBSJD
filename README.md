@@ -9,7 +9,7 @@ sincronização automática entre dispositivos e histórico das últimas 30 vers
 Consulte [DEPLOYMENT.md](DEPLOYMENT.md) para operação, backup e recuperação. A publicação depende do servidor VPS para conta e sincronização.
 
 - Lista legível no celular, edição por teclado, controles nomeados e editor modal acessível.
-- Login do proprietário; senha protegida por scrypt e sessões HttpOnly/Secure de até 7 dias.
+- Login do proprietário com PIN de quatro dígitos protegido por scrypt e sessões HttpOnly/Secure de até 7 dias. Após três erros, a recuperação exige código enviado ao email cadastrado; o SMTP precisa estar ativo na VPS.
 - Sincronização a cada 3 segundos. Conflitos exigem escolher entre a versão local e a nuvem; nenhuma edição concorrente é mesclada silenciosamente.
 - **Histórico** restaura uma versão anterior como uma nova versão. **Baixar backup local** preserva alterações antes de resolver conflitos.
 - Limites de IA por conta: 20 pedidos/hora e 100/dia, configuráveis. Respostas limitadas a 8192 tokens; falhas também contam para a cota local.
@@ -27,7 +27,7 @@ As configurações privadas são geradas por `node scripts/prepare-vps.mjs https
 
 - Edição e exclusão de cultos, gerenciamento de nomes e personalização visual.
 - Salvamento automático no navegador, preservando exclusões mesmo após recarregar.
-- Histórico inicial de dezembro/2025, janeiro/2026 e março a agosto/2026 (fevereiro não está incluído).
+- Histórico inicial de dezembro/2025, janeiro/2026 e março a setembro/2026 (fevereiro não está incluído). Setembro foi recuperado da imagem; edições existentes são preservadas.
 - Assistente Gemini com envio de imagens, regras de revezamento e contexto dos eventos existentes.
 - PNG em alta resolução e PDF A4 em paisagem. As bibliotecas de exportação só carregam quando utilizadas.
 - Botões **Backup** e **Importar** para salvar/restaurar escalas, nomes, visual, padrão visual, conversas e mês selecionado.

@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { readFile, stat } from 'node:fs/promises';
 import { mkdirSync } from 'node:fs';
@@ -8,18 +8,24 @@ import { fileURLToPath } from 'node:url';
 import { openDatabase, readState, writeState, consumeQuota } from './database';
 import { parseAppData } from '../services/validation';
 import { handleAIRequest } from './api';
+import { createLoginCodeSender, type SendLoginCode } from './email';
 
 const derive = promisify(scrypt);
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const MAX_BYTES = 15_000_000;
+const codeDigest = (pepper: string, code: string) => createHmac('sha256', pepper).update(code).digest();
+const constantEqual = (a: Uint8Array, b: Uint8Array) => a.length === b.length && timingSafeEqual(a, b);
 
-export function createAppServer(env: NodeJS.ProcessEnv = process.env) {
+export function createAppServer(env: NodeJS.ProcessEnv = process.env, sendCode: SendLoginCode = createLoginCodeSender(env), clock: () => number = Date.now, generateCode: () => string = () => String(randomInt(0, 1000000)).padStart(6, '0')) {
   const origin = env.APP_ORIGIN;
   if (!origin || !/^https?:\/\//.test(origin) || new URL(origin).origin !== origin) throw new Error('Configure APP_ORIGIN com a origem exata do aplicativo.');
-  if (!env.ADMIN_USERNAME || !/^[a-f\d]{32}:[a-f\d]{128}$/i.test(env.ADMIN_PASSWORD_HASH || '')) throw new Error('Configure ADMIN_USERNAME e ADMIN_PASSWORD_HASH antes de iniciar.');
+  if (!/^[a-zA-Z0-9._-]{1,64}$/.test(env.ADMIN_USERNAME || '') ||
+      (env.RECOVERY_EMAIL || '').toLowerCase() !== 'produtivoalex@gmail.com' || !/^[a-f\d]{64}$/i.test(env.OTP_PEPPER || ''))
+    throw new Error('Configure ADMIN_USERNAME, RECOVERY_EMAIL e OTP_PEPPER.');
   const filename = env.DATABASE_PATH || './runtime/cultogen.sqlite';
   if (filename !== ':memory:') mkdirSync(path.dirname(filename), { recursive: true });
   const db = openDatabase(filename);
+  try { db.exec("ALTER TABLE sessions ADD COLUMN purpose TEXT NOT NULL DEFAULT 'legacy'"); } catch { /* already migrated */ }
   const root = path.resolve(env.STATIC_DIR || './dist');
   const secure = origin.startsWith('https://');
   const cookie = (token: string, maxAge: number) => `cultogen_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
@@ -51,31 +57,95 @@ export function createAppServer(env: NodeJS.ProcessEnv = process.env) {
         if (!['GET', 'HEAD'].includes(req.method || '') && (req.headers.origin !== origin || req.headers['sec-fetch-site'] === 'cross-site')) {
           send(res, 403, { error: 'Origem não permitida.' }); return;
         }
-        const now = Date.now();
+        const now = clock();
         db.prepare('DELETE FROM sessions WHERE expires < ?').run(now);
         const token = req.headers.cookie?.split(';').map(c => c.trim()).find(c => c.startsWith('cultogen_session='))?.slice(17) || '';
-        const session = token ? db.prepare('SELECT owner FROM sessions WHERE token = ? AND expires > ?').get(hash(token), now) : undefined;
+        const session = token ? db.prepare('SELECT owner, purpose FROM sessions WHERE token = ? AND expires > ?').get(hash(token), now) : undefined;
         if (pathname === '/api/session' && req.method === 'GET') {
-          send(res, 200, { enabled: true, username: session?.owner || null }); return;
+          const profile = db.prepare('SELECT pin_hash, email_verified FROM credentials WHERE owner=?').get(env.ADMIN_USERNAME);
+          const active = session?.purpose === 'app' || session?.purpose === 'setup';
+          const recoveryEmail = profile?.email_verified ? env.RECOVERY_EMAIL!.replace(/^(.{2})[^@]*(@.*)$/, '$1••••$2') : null;
+          send(res, 200, { enabled: true, username: active && session?.purpose === 'app' ? session.owner : null,
+            setupRequired: !profile?.pin_hash, setupSession: active && session?.purpose === 'setup', recoveryEmail }); return;
         }
         if (pathname === '/api/login' && req.method === 'POST') {
-          // Bound expensive password checks even when clients forge proxy headers.
           if (!consumeQuota(db, 'login', `login:${Math.floor(now / 900000)}`, 30)) { send(res, 429, { error: 'Muitas tentativas. Aguarde 15 minutos.' }); return; }
           const input = await body(req);
-          if (typeof input?.username !== 'string' || typeof input?.password !== 'string' || input.password.length > 256) { send(res, 400, { error: 'Dados de acesso inválidos.' }); return; }
-          const [salt, expected] = env.ADMIN_PASSWORD_HASH!.split(':');
-          const actual = await derive(input.password, salt, 64) as Buffer;
-          if (!timingSafeEqual(actual, Buffer.from(expected, 'hex')) || input.username !== env.ADMIN_USERNAME) { send(res, 401, { error: 'Usuário ou senha incorretos.' }); return; }
+          db.prepare('INSERT OR IGNORE INTO credentials(owner) VALUES (?)').run(env.ADMIN_USERNAME);
+          const profile = db.prepare('SELECT pin_hash, failed_pins FROM credentials WHERE owner=?').get(env.ADMIN_USERNAME)!;
+          if (!profile.pin_hash) { send(res, 428, { error: 'Confirme seu email para configurar o PIN.', setupRequired: true }); return; }
+          if (Number(profile.failed_pins) >= 3) { send(res, 401, { error: 'Você errou 3 vezes. Confirme seu email para entrar.', recoveryAvailable: true }); return; }
+          const pin = typeof input?.pin === 'string' ? input.pin : '';
+          let valid = false;
+          if (/^\d{4}$/.test(pin)) {
+            const [salt, expected] = String(profile.pin_hash).split(':');
+            valid = constantEqual(await derive(pin, salt, 64) as Buffer, Buffer.from(expected, 'hex'));
+          }
+          if (!valid) {
+            const failed = Number(profile.failed_pins) + 1;
+            db.prepare('UPDATE credentials SET failed_pins=? WHERE owner=?').run(failed, env.ADMIN_USERNAME);
+            send(res, 401, { error: failed >= 3 ? 'Você errou 3 vezes. Confirme seu email para entrar.' : 'PIN incorreto.', recoveryAvailable: failed >= 3, attemptsRemaining: Math.max(0, 3 - failed) }); return;
+          }
+          db.prepare('UPDATE credentials SET failed_pins=0 WHERE owner=?').run(env.ADMIN_USERNAME);
           const newToken = randomBytes(32).toString('hex');
-          db.prepare('INSERT INTO sessions VALUES (?, ?, ?)').run(hash(newToken), input.username, now + 7 * 86400000);
-          res.setHeader('Set-Cookie', cookie(newToken, 7 * 86400)); send(res, 200, { username: input.username }); return;
+          db.prepare('INSERT INTO sessions(token,owner,expires,purpose) VALUES (?,?,?,?)').run(hash(newToken), env.ADMIN_USERNAME, now + 7 * 86400000, 'app');
+          res.setHeader('Set-Cookie', cookie(newToken, 7 * 86400)); send(res, 200, { username: env.ADMIN_USERNAME }); return;
         }
-        if (!session) { send(res, 401, { error: 'Entre novamente para sincronizar.' }); return; }
-        const owner = String(session.owner);
-        if (pathname === '/api/logout' && req.method === 'POST') {
+        if (pathname === '/api/email/send' && req.method === 'POST') {
+          const input = await body(req), purpose = input?.purpose === 'setup' ? 'setup' : 'recovery';
+          db.prepare('INSERT OR IGNORE INTO credentials(owner) VALUES (?)').run(env.ADMIN_USERNAME);
+          const profile = db.prepare('SELECT pin_hash,failed_pins,otp_sent_at,otp_window,otp_sends FROM credentials WHERE owner=?').get(env.ADMIN_USERNAME)!;
+          if ((purpose === 'setup' && profile.pin_hash) || (purpose === 'recovery' && Number(profile.failed_pins) < 3)) {
+            send(res, 200, { message: 'Se a confirmação estiver disponível, um código foi solicitado.' }); return;
+          }
+          const previousWindow = Number(profile.otp_window);
+          const windowStart = previousWindow > now - 3600000 ? previousWindow : now;
+          const sends = windowStart === previousWindow ? Number(profile.otp_sends) : 0;
+          if (sends >= 3 || now - Number(profile.otp_sent_at) < 60000) { send(res, 429, { error: 'Aguarde antes de solicitar outro código.' }); return; }
+          const code = generateCode();
+          db.prepare(`UPDATE credentials SET otp_hash=?,otp_expires=?,otp_attempts=0,otp_sent_at=?,otp_window=?,otp_sends=?,otp_purpose=? WHERE owner=?`)
+            .run(codeDigest(env.OTP_PEPPER!, code).toString('hex'), now + 600000, now, windowStart, sends + 1, purpose, env.ADMIN_USERNAME);
+          try { await sendCode(env.RECOVERY_EMAIL!, code); }
+          catch { db.prepare('UPDATE credentials SET otp_hash=NULL,otp_expires=0 WHERE owner=?').run(env.ADMIN_USERNAME); send(res, 503, { error: 'Não foi possível enviar o email. Tente mais tarde.' }); return; }
+          send(res, 200, { message: 'Código enviado ao email cadastrado. Ele expira em 10 minutos.' }); return;
+        }
+        if (pathname === '/api/email/verify' && req.method === 'POST') {
+          const input = await body(req), value = typeof input?.code === 'string' ? input.code : '';
+          const profile = db.prepare('SELECT otp_hash,otp_expires,otp_attempts,otp_purpose FROM credentials WHERE owner=?').get(env.ADMIN_USERNAME);
+          if (!/^\d{6}$/.test(value) || !profile?.otp_hash || Number(profile.otp_expires) < now || Number(profile.otp_attempts) >= 5) {
+            send(res, 401, { error: 'Código inválido ou expirado. Solicite outro.' }); return;
+          }
+          if (!constantEqual(Buffer.from(String(profile.otp_hash), 'hex'), codeDigest(env.OTP_PEPPER!, value))) {
+            const attempts = Number(profile.otp_attempts) + 1;
+            db.prepare(`UPDATE credentials SET otp_attempts=?,otp_hash=CASE WHEN ? >= 5 THEN NULL ELSE otp_hash END,
+              otp_expires=CASE WHEN ? >= 5 THEN 0 ELSE otp_expires END WHERE owner=?`).run(attempts, attempts, attempts, env.ADMIN_USERNAME);
+            send(res, 401, { error: attempts >= 5 ? 'Limite de códigos atingido. Solicite outro email.' : 'Código incorreto.' }); return;
+          }
+          const setup = profile.otp_purpose === 'setup';
+          db.prepare("UPDATE credentials SET email_verified=1,failed_pins=0,otp_hash=NULL,otp_expires=0,otp_attempts=0,otp_purpose='' WHERE owner=?").run(env.ADMIN_USERNAME);
+          const newToken = randomBytes(32).toString('hex'), lifetime = setup ? 600 : 604800;
+          db.prepare('INSERT INTO sessions(token,owner,expires,purpose) VALUES (?,?,?,?)').run(hash(newToken), env.ADMIN_USERNAME, now + lifetime * 1000, setup ? 'setup' : 'app');
+          res.setHeader('Set-Cookie', cookie(newToken, lifetime)); send(res, 200, { username: env.ADMIN_USERNAME, setupRequired: setup }); return;
+        }
+        if (pathname === '/api/pin/set' && req.method === 'POST') {
+          const role = token ? db.prepare('SELECT purpose FROM sessions WHERE token=? AND owner=? AND expires>?').get(hash(token), env.ADMIN_USERNAME, now) : undefined;
+          if (role?.purpose !== 'setup') { send(res, 401, { error: 'Confirme o email para configurar o PIN.' }); return; }
+          const input = await body(req);
+          if (typeof input?.pin !== 'string' || !/^\d{4}$/.test(input.pin) || input.pin !== input.confirmation) {
+            send(res, 400, { error: 'Informe duas vezes o mesmo PIN de quatro dígitos.' }); return;
+          }
+          const salt = randomBytes(16).toString('hex'), pinHash = salt + ':' + (await derive(input.pin, salt, 64) as Buffer).toString('hex');
+          db.prepare('UPDATE credentials SET pin_hash=?,failed_pins=0 WHERE owner=? AND email_verified=1').run(pinHash, env.ADMIN_USERNAME);
+          db.prepare("UPDATE sessions SET purpose='app',expires=? WHERE token=?").run(now + 7 * 86400000, hash(token));
+          db.prepare('DELETE FROM sessions WHERE owner=? AND token<>?').run(env.ADMIN_USERNAME, hash(token));
+          res.setHeader('Set-Cookie', cookie(token, 7 * 86400)); send(res, 200, { username: env.ADMIN_USERNAME }); return;
+        }
+        if (pathname === '/api/logout' && req.method === 'POST' && session) {
           db.prepare('DELETE FROM sessions WHERE token = ?').run(hash(token));
           res.setHeader('Set-Cookie', cookie('', 0)); send(res, 200, { ok: true }); return;
         }
+        if (!session || session.purpose !== 'app') { send(res, 401, { error: 'Confirme sua identidade para sincronizar.' }); return; }
+        const owner = String(session.owner);
         if (pathname === '/api/state' && req.method === 'GET') { send(res, 200, readState(db, owner)); return; }
         if (pathname === '/api/state' && req.method === 'PUT') {
           const input = await body(req);

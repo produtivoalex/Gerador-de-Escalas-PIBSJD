@@ -173,4 +173,19 @@ export const PRELOADED_EVENTS: ChurchEvent[] = [
   { id: 'ago-26', date: '2026-08-26', type: ServiceType.CENTRAL, leader: 'Francisca Alves', preacher: 'Pr. Lourival' },
   { id: 'ago-28', date: '2026-08-28', type: ServiceType.DOMICILIAR, leader: '', preacher: '', notes: 'PGMs' },
   { id: 'ago-30', date: '2026-08-30', type: ServiceType.ADORACAO, leader: 'Jesus', preacher: 'Pr. Lourival' },
+
+  // SETEMBRO 2026 — recuperação da imagem fornecida pela igreja
+  { id: 'sep-02', date: '2026-09-02', type: ServiceType.CENTRAL, leader: 'Maria José', preacher: 'Pr. Lourival' },
+  { id: 'sep-04', date: '2026-09-04', type: ServiceType.DOMICILIAR, leader: '', preacher: '', notes: 'PGMs' },
+  { id: 'sep-06', date: '2026-09-06', type: ServiceType.ADORACAO, leader: 'Diomar', preacher: 'Pr. Lourival' },
+  { id: 'sep-09', date: '2026-09-09', type: ServiceType.CENTRAL, leader: 'Antonia Maria', preacher: 'Pr. Lourival' },
+  { id: 'sep-11', date: '2026-09-11', type: ServiceType.DOMICILIAR, leader: '', preacher: '', notes: 'PGMs' },
+  { id: 'sep-13', date: '2026-09-13', type: ServiceType.ADORACAO, leader: 'Raquel', preacher: 'Pr. Lourival' },
+  { id: 'sep-16', date: '2026-09-16', type: ServiceType.CENTRAL, leader: 'Amparo', preacher: 'Pr. Lourival' },
+  { id: 'sep-18', date: '2026-09-18', type: ServiceType.DOMICILIAR, leader: '', preacher: '', notes: 'PGMs' },
+  { id: 'sep-20', date: '2026-09-20', type: ServiceType.ADORACAO, leader: 'Ataniel', preacher: 'Pr. Lourival' },
+  { id: 'sep-23', date: '2026-09-23', type: ServiceType.CENTRAL, leader: 'Jesus', preacher: 'Pr. Lourival' },
+  { id: 'sep-25', date: '2026-09-25', type: ServiceType.DOMICILIAR, leader: '', preacher: '', notes: 'PGMs' },
+  { id: 'sep-27', date: '2026-09-27', type: ServiceType.ADORACAO, leader: 'Filho', preacher: 'Pr. Lourival' },
+  { id: 'sep-30', date: '2026-09-30', type: ServiceType.CENTRAL, leader: 'Fco. Antonio', preacher: 'Pr. Lourival' },
 ];

@@ -7,6 +7,13 @@ export function openDatabase(filename: string) {
     CREATE TABLE IF NOT EXISTS states (owner TEXT PRIMARY KEY, version INTEGER NOT NULL, data TEXT NOT NULL, updated TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS versions (owner TEXT NOT NULL, version INTEGER NOT NULL, data TEXT NOT NULL, updated TEXT NOT NULL, PRIMARY KEY(owner, version));
     CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, owner TEXT NOT NULL, expires INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS credentials (
+      owner TEXT PRIMARY KEY, pin_hash TEXT, email_verified INTEGER NOT NULL DEFAULT 0,
+      failed_pins INTEGER NOT NULL DEFAULT 0, otp_hash TEXT, otp_expires INTEGER NOT NULL DEFAULT 0,
+      otp_attempts INTEGER NOT NULL DEFAULT 0, otp_sent_at INTEGER NOT NULL DEFAULT 0,
+      otp_window INTEGER NOT NULL DEFAULT 0, otp_sends INTEGER NOT NULL DEFAULT 0,
+      otp_purpose TEXT NOT NULL DEFAULT ''
+    );
     CREATE TABLE IF NOT EXISTS usage (owner TEXT NOT NULL, bucket TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY(owner, bucket));`);
   return db;
 }

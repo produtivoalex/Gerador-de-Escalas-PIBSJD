@@ -37,12 +37,17 @@ O contêiner roda sem root, com memória limitada a 512 MB e porta 3210 ligada s
 | --- | --- |
 | `APP_ORIGIN` | Origem HTTPS exata, usada para validar escritas |
 | `ADMIN_USERNAME` | Conta proprietária |
-| `ADMIN_PASSWORD_HASH` | Hash scrypt gerado pelo script de preparação |
+| `RECOVERY_EMAIL` | Email do proprietário que recebe os códigos de confirmação |
+| `OTP_PEPPER` | Segredo aleatório para proteger os códigos de email |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` | Servidor Gmail para envio dos códigos |
+| `SMTP_PASSWORD` | Senha de app do Gmail; segredo privado, nunca compartilhe no chat ou Git |
 | `GEMINI_API_KEY` | Chave da IA, somente no servidor |
 | `GEMINI_MODEL` | Modelo Gemini configurável |
 | `AI_HOURLY_LIMIT` | Pedidos de IA por hora; padrão 20 |
 | `AI_DAILY_LIMIT` | Pedidos de IA por dia; padrão 100 |
 | `DATABASE_PATH` | No contêiner, `/data/cultogen.sqlite` |
+
+No primeiro acesso, confirme o código enviado ao email cadastrado e escolha um PIN de quatro dígitos. Após três PINs incorretos, confirme o email para entrar novamente. Configure `SMTP_PASSWORD` no arquivo privado da VPS antes de publicar esta troca; sem ela, o envio é recusado e o acesso permanece fechado.
 
 ## Backups e restauração
 

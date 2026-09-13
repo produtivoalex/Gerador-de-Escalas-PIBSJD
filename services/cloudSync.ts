@@ -9,7 +9,7 @@ const key = (username: string) => `cultogen_cloud_v1:${username}`;
 export async function cloudRequest(url: string, options: RequestInit = {}) {
   const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers }, signal: AbortSignal.timeout(15000) });
   const data = await response.json();
-  if (!response.ok) throw Object.assign(new Error(data.error || 'Não foi possível sincronizar.'), { status: response.status, remote: data });
+  if (!response.ok) throw Object.assign(new Error(data.error || 'Não foi possível sincronizar.'), { status: response.status, remote: data, recoveryAvailable: data.recoveryAvailable, setupRequired: data.setupRequired });
   return data;
 }
 

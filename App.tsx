@@ -7,7 +7,7 @@ import DesignPanel from './components/DesignPanel';
 import EventEditor from './components/EventEditor';
 import type { AppData, ChurchEvent, ChatMessage } from './types';
 import { MONTH_THEMES } from './data/defaults';
-import { applyEventChanges, defaultData, loadData, saveData, parseBackup, serializeBackup } from './services/storage';
+import { applyEventChanges, defaultData, loadData, saveData, parseBackup, serializeBackup, restoreSeptemberSchedule } from './services/storage';
 import { processCommand } from './services/geminiService';
 import { cachedCloud, cloudRequest, useCloudSync, type CloudSession } from './services/cloudSync';
 
@@ -17,8 +17,8 @@ const App: React.FC<{ cloud?: CloudSession; onLogout?: () => void }> = ({ cloud,
   const [initial] = useState(() => {
     if (cloud) {
       const cached = cachedCloud(cloud);
-      if (cached) return { data: cached.data as AppData, error: '' };
-      if (cloud.data) return { data: cloud.data, error: '' };
+      if (cached) return { data: restoreSeptemberSchedule(cached.data as AppData), error: '' };
+      if (cloud.data) return { data: restoreSeptemberSchedule(cloud.data), error: '' };
     }
     try { return { data: loadData(localStorage), error: '' }; }
     catch { return { data: defaultData(), error: 'Não foi possível ler os dados salvos. Eles foram preservados; importe um backup para recuperar.' }; }

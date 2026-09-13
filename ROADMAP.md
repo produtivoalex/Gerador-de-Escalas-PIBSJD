@@ -1,7 +1,7 @@
 # Roadmap — Gerador de Escalas PIB
 
 **Estado:** publicado na VPS com login, sincronização SQLite e backup diário.
-**Revisado em:** 12/09/2026. O histórico pré-carregado vai até agosto/2026.
+**Revisado em:** 12/09/2026. Setembro/2026 foi recuperado da imagem fornecida; meses seguintes precisam de confirmação.
 **Destino escolhido:** VPS `152.67.51.178`, substituindo o plano de Cloudflare Pages. Veja [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Concluído
@@ -14,7 +14,7 @@
 - Documentação de execução e publicação na VPS.
 - Testes automatizados de API, SQLite, backup e interface; build e checagem de ausência da chave no bundle.
 - Solicitação real e limitada ao Gemini verificada com dados fictícios; nenhuma escala alterada.
-- Login privado com senha scrypt e cookies HttpOnly/Secure; sessões revogadas ao sair.
+- Login privado com PIN scrypt, recuperação por email após três erros e cookies HttpOnly/Secure; o SMTP na VPS ainda depende da senha de app Gmail.
 - Sincronização entre dispositivos da conta proprietária, conflitos explícitos e histórico de 30 versões.
 - Lista para celular, edição por teclado e auditoria automatizada do editor móvel.
 - Contêiner sem root, volume persistente e limites de CPU/memória; backup SQLite diário.
@@ -24,7 +24,9 @@
 
 ### P0 — preparar e verificar a publicação
 
-- [ ] Atualizar escalas e nomes de setembro/2026 em diante com os responsáveis pela igreja; conferir registros históricos antes de substituir ou acrescentar dados.
+- [x] Recuperar e migrar a escala de setembro/2026 da imagem, preservando edições existentes.
+- [ ] Confirmar escalas e nomes dos meses seguintes com os responsáveis pela igreja.
+- [ ] Configurar a senha de app Gmail na VPS e validar o envio de email, antes de publicar a troca para PIN.
 - [x] Configurar a chave Gemini e o modelo no servidor da VPS, após autorização explícita do proprietário.
 - [x] Proteger API por login e limitar chamadas de IA a 20/hora e 100/dia por conta.
 - [x] Publicar pelo Docker/Nginx no túnel HTTPS existente; validar login, assets, API privada e uma chamada real da IA sem alterar escalas.
