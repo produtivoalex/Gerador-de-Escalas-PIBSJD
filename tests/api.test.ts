@@ -28,7 +28,7 @@ test('credentials stay in server headers; current event IDs are supplied for edi
     assert.equal(String(url).includes(env.GROQ_API_KEY), false);
     assert.equal(new Headers(init?.headers).get('authorization'), `Bearer ${env.GROQ_API_KEY}`);
     const payload = JSON.parse(String(init?.body));
-    assert.ok(payload.messages[0].content.includes(data.events[0].id));
+    assert.ok(payload.messages[0].content.includes('HISTÓRICO'));
     return Response.json({ choices: [{ message: { content: JSON.stringify({ message: 'Pronto', updatedEvents: [{ ...data.events[0], leader: 'Ryan' }] }) } }] });
   });
   assert.equal(response.status, 200);

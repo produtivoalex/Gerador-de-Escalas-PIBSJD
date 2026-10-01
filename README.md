@@ -38,14 +38,14 @@ Use Node.js 24 ou superior. Instale com `npm ci`, copie `.env.example` para `.en
 
 ```env
 GROQ_API_KEY=sua_chave_aqui
-GROQ_MODEL=llama-3.3-70b-versatile
+GROQ_MODEL=openai/gpt-oss-120b
 ```
 
 Execute `npm run dev` e abra http://127.0.0.1:3000. No PowerShell com restrição de scripts, use `npm.cmd run dev`.
 A edição e as exportações funcionam sem chave; somente o assistente depende dela.
 
 O navegador chama `/api/generate`. A chave fica no servidor e não é incorporada ao JavaScript público.
-O modelo pode ser alterado por `GROQ_MODEL`; o padrão é `llama-3.3-70b-versatile`.
+O modelo pode ser alterado por `GROQ_MODEL`; o padrão é `openai/gpt-oss-120b`.
 O servidor valida pedidos e respostas e informa falhas de configuração, limite de uso e tempo de espera.
 Não há tentativa automática em outro modelo que possa duplicar custos ou mascarar um erro de configuração.
 

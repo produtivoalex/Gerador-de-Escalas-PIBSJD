@@ -7,6 +7,24 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
   status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
 });
 
+function normalizeGroqResponse(raw: string, month: string) {
+  const parsed = JSON.parse(raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()) as any;
+  if (!Array.isArray(parsed)) return parsed;
+  return {
+    message: 'Escala gerada com sucesso.',
+    suggestedMonth: month,
+    updatedEvents: parsed.map((event: any, index: number) => ({
+      id: event.id || `ai-${event.date || event.data || month}-${index}`,
+      date: event.date || event.data,
+      type: event.type || event.tipo,
+      leader: event.leader ?? event.dirigente ?? '',
+      preacher: event.preacher ?? event.pregador ?? '',
+      notes: event.notes,
+      customTitle: event.customTitle || event.titulo || undefined
+    }))
+  };
+}
+
 export async function handleAIRequest(request: Request, env: ServerEnv, fetcher: typeof fetch = fetch) {
   if (request.method !== 'POST') return new Response(null, { status: 405, headers: { Allow: 'POST' } });
   const origin = request.headers.get('origin');
@@ -38,8 +56,8 @@ export async function handleAIRequest(request: Request, env: ServerEnv, fetcher:
   if (!env.GROQ_API_KEY || env.GROQ_API_KEY === 'sua_chave_aqui') {
     return json({ error: 'A IA ainda não foi configurada no servidor. A edição manual continua disponível.' }, 503);
   }
-  const model = env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-  if (!/^[a-zA-Z0-9._-]+$/.test(model)) return json({ error: 'Modelo de IA inválido na configuração do servidor.' }, 503);
+  const model = env.GROQ_MODEL || 'openai/gpt-oss-120b';
+  if (!/^[a-zA-Z0-9._/-]+$/.test(model)) return json({ error: 'Modelo de IA inválido na configuração do servidor.' }, 503);
   try {
     const response = await fetcher('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.GROQ_API_KEY}` },
@@ -52,7 +70,7 @@ export async function handleAIRequest(request: Request, env: ServerEnv, fetcher:
     }
     const result = await response.json() as { choices?: { message?: { content?: string } }[] };
     const content = result.choices?.[0]?.message?.content;
-    return json(parseAIResponse(JSON.parse(content || '')));
+    return json(parseAIResponse(normalizeGroqResponse(content || '', input.currentMonth)));
   } catch (error) {
     const timeout = error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name);
     return json({ error: timeout ? 'A IA demorou para responder. Tente novamente.' :

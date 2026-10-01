@@ -66,13 +66,14 @@ const responseSchema = {
 };
 
 
-export function buildGroqRequest(input: AIRequest, model = 'llama-3.3-70b-versatile') {
+export function buildGroqRequest(input: AIRequest, model = 'openai/gpt-oss-120b') {
   const { allEvents, availablePeople, currentConfig, command, attachment } = input;
   const currentMonthStr = input.currentMonth;
   const pastEvents = allEvents
     .filter(e => (e.leader || e.preacher) && e.date < `${currentMonthStr}-01`)
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(-35);
+  const currentMonthEvents = allEvents.filter(e => e.date.startsWith(`${currentMonthStr}-`));
 
   const systemInstruction = `
     Você é o Assistente Especialista da Igreja Batista em São José do Divino - PI.
@@ -112,7 +113,7 @@ export function buildGroqRequest(input: AIRequest, model = 'llama-3.3-70b-versat
 
     Contexto Atual:
     Mês da escala: ${currentMonthStr}
-    Eventos existentes (preserve IDs ao editar; não duplique datas e tipos): ${JSON.stringify(allEvents)}
+    Eventos existentes no mês atual (preserve IDs ao editar; não duplique datas e tipos): ${JSON.stringify(currentMonthEvents)}
     Pessoas disponíveis: ${JSON.stringify(availablePeople)}
     Design atual: ${JSON.stringify(currentConfig)}
 
@@ -132,6 +133,6 @@ export function buildGroqRequest(input: AIRequest, model = 'llama-3.3-70b-versat
     ],
     response_format: { type: 'json_object' },
     temperature: 0.2,
-    max_tokens: 8192
+    max_tokens: 4096
   };
 }
