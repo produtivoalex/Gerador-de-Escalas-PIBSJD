@@ -66,7 +66,7 @@ const responseSchema = {
 };
 
 
-export function buildGeminiRequest(input: AIRequest) {
+export function buildGroqRequest(input: AIRequest, model = 'llama-3.3-70b-versatile') {
   const { allEvents, availablePeople, currentConfig, command, attachment } = input;
   const currentMonthStr = input.currentMonth;
   const pastEvents = allEvents
@@ -122,11 +122,16 @@ export function buildGeminiRequest(input: AIRequest) {
 
 
   return {
-    systemInstruction: { parts: [{ text: systemInstruction }] },
-    contents: [{ role: 'user', parts: [
-      ...(attachment ? [{ inlineData: attachment }] : []),
-      { text: command || 'Extraia os dados desta escala para o sistema.' }
-    ] }],
-    generationConfig: { responseMimeType: 'application/json', responseSchema, temperature: 0.2, maxOutputTokens: 8192 }
+    model,
+    messages: [
+      { role: 'system', content: systemInstruction },
+      { role: 'user', content: [
+        ...(attachment ? [{ type: 'image_url', image_url: { url: `data:${attachment.mimeType};base64,${attachment.data}` } }] : []),
+        { type: 'text', text: command || 'Extraia os dados desta escala para o sistema.' }
+      ] }
+    ],
+    response_format: { type: 'json_object' },
+    temperature: 0.2,
+    max_tokens: 8192
   };
 }

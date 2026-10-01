@@ -24,6 +24,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
   onUpdatePeople 
 }) => {
   const [type, setType] = useState<ServiceType>(ServiceType.ADORACAO);
+  const [eventDate, setEventDate] = useState(date);
   const [customTitle, setCustomTitle] = useState('');
   const [leader, setLeader] = useState('');
   const [preacher, setPreacher] = useState('');
@@ -45,12 +46,14 @@ const EventEditor: React.FC<EventEditorProps> = ({
   useEffect(() => {
     if (isOpen) {
       if (event) {
+        setEventDate(event.date);
         setType(event.type);
         setCustomTitle(event.customTitle || '');
         setLeader(event.leader);
         setPreacher(event.preacher);
         setNotes(event.notes || '');
       } else {
+        setEventDate(date);
         const d = new Date(date + 'T12:00:00'); 
         const day = d.getDay();
         if (day === 0) {
@@ -83,7 +86,7 @@ const EventEditor: React.FC<EventEditorProps> = ({
   const handleSave = () => {
     onSave({
       id: event?.id || crypto.randomUUID(),
-      date,
+      date: eventDate,
       type,
       customTitle: type === ServiceType.OUTRO ? customTitle : undefined,
       leader,
@@ -220,6 +223,11 @@ const EventEditor: React.FC<EventEditorProps> = ({
             </div>
           ) : (
             <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2" htmlFor="event-date">Data do culto</label>
+                <input id="event-date" type="date" aria-label="Data do culto" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900" />
+                {event && <p className="mt-1 text-[11px] text-gray-500">Altere a data para mover este card para outro dia.</p>}
+              </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tipo de Culto</label>
                 <select 

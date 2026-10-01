@@ -41,8 +41,8 @@ O contêiner roda sem root, com memória limitada a 512 MB e porta 3210 ligada s
 | `OTP_PEPPER` | Segredo aleatório para proteger os códigos de email |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` | Servidor Gmail para envio dos códigos |
 | `SMTP_PASSWORD` | Senha de app do Gmail; segredo privado, nunca compartilhe no chat ou Git |
-| `GEMINI_API_KEY` | Chave da IA, somente no servidor |
-| `GEMINI_MODEL` | Modelo Gemini configurável |
+| `GROQ_API_KEY` | Chave da IA, somente no servidor |
+| `GROQ_MODEL` | Modelo Groq configurável |
 | `AI_HOURLY_LIMIT` | Pedidos de IA por hora; padrão 20 |
 | `AI_DAILY_LIMIT` | Pedidos de IA por dia; padrão 100 |
 | `DATABASE_PATH` | No contêiner, `/data/cultogen.sqlite` |

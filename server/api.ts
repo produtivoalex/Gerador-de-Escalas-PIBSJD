@@ -1,7 +1,7 @@
-import { buildGeminiRequest } from './prompt';
+import { buildGroqRequest } from './prompt';
 import { parseAIRequest, parseAIResponse } from '../services/validation';
 
-export interface ServerEnv { GEMINI_API_KEY?: string; GEMINI_MODEL?: string }
+export interface ServerEnv { GROQ_API_KEY?: string; GROQ_MODEL?: string }
 export const MAX_REQUEST_BYTES = 6 * 1024 * 1024;
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
@@ -35,23 +35,23 @@ export async function handleAIRequest(request: Request, env: ServerEnv, fetcher:
   } catch {
     return json({ error: 'Pedido inválido. Confira os dados e use imagens PNG, JPEG ou WebP de até 4 MB.' }, 400);
   }
-  if (!env.GEMINI_API_KEY || env.GEMINI_API_KEY === 'sua_chave_aqui') {
+  if (!env.GROQ_API_KEY || env.GROQ_API_KEY === 'sua_chave_aqui') {
     return json({ error: 'A IA ainda não foi configurada no servidor. A edição manual continua disponível.' }, 503);
   }
-  const model = env.GEMINI_MODEL || 'gemini-3.6-flash';
+  const model = env.GROQ_MODEL || 'llama-3.3-70b-versatile';
   if (!/^[a-zA-Z0-9._-]+$/.test(model)) return json({ error: 'Modelo de IA inválido na configuração do servidor.' }, 503);
   try {
-    const response = await fetcher(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-      body: JSON.stringify(buildGeminiRequest(input)), signal: AbortSignal.timeout(45000)
+    const response = await fetcher('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.GROQ_API_KEY}` },
+      body: JSON.stringify(buildGroqRequest(input, model)), signal: AbortSignal.timeout(45000)
     });
     if (!response.ok) {
       // Do not expose upstream details or credentials in responses or logs.
       if (response.status === 429) return json({ error: 'Limite de uso da IA atingido. Tente novamente mais tarde.' }, 429);
       return json({ error: 'Não foi possível consultar a IA. Verifique a chave e o modelo no servidor.' }, 502);
     }
-    const result = await response.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-    const content = result.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('');
+    const result = await response.json() as { choices?: { message?: { content?: string } }[] };
+    const content = result.choices?.[0]?.message?.content;
     return json(parseAIResponse(JSON.parse(content || '')));
   } catch (error) {
     const timeout = error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name);

@@ -45,7 +45,7 @@ test('mobile list supports keyboard editing and labelled controls', async ({ pag
   await page.getByRole('button', { name: 'Fechar painel' }).click();
   await page.screenshot({ path: testInfo.outputPath('mobile.png') });
   const downloaded = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Exportar PNG' }).click();
+  await page.getByRole('button', { name: 'Exportar.' }).click();
   const bytes = await fs.readFile((await (await downloaded).path())!);
   expect(bytes.readUInt32BE(16)).toBeGreaterThan(2500);
 });
@@ -79,28 +79,17 @@ test('backup restores in another browser context and quota failure preserves sav
   } finally { await context.close(); }
 });
 
-test('exports a real PNG and an A4 PDF', async ({ page }, testInfo) => {
+test('exports a real PNG', async ({ page }, testInfo) => {
   await page.goto('/');
-  for (const format of ['PNG', 'PDF']) {
-    const downloaded = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Exportar ' + format }).click();
-    const download = await downloaded;
-    const bytes = await fs.readFile((await download.path())!);
-    expect(bytes.length).toBeGreaterThan(10000);
-    if (format === 'PNG') {
-      expect(bytes.subarray(1, 4).toString()).toBe('PNG');
-      expect(bytes.readUInt32BE(16)).toBeGreaterThan(2500);
-      await download.saveAs(testInfo.outputPath('escala.png'));
-    } else {
-      expect(bytes.subarray(0, 4).toString()).toBe('%PDF');
-      expect(/\/Count 1\b/.test(bytes.toString('latin1'))).toBe(true);
-      const mediaBox = bytes.toString('latin1').match(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/);
-      expect(Number(mediaBox?.[1])).toBeCloseTo(841.89, 1);
-      expect(Number(mediaBox?.[2])).toBeCloseTo(595.28, 1);
-      await download.saveAs(testInfo.outputPath('escala.pdf'));
-    }
-    await expect(page.getByRole('button', { name: 'Exportar PNG' })).toBeEnabled();
-  }
+  const downloaded = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar.' }).click();
+  const download = await downloaded;
+  const bytes = await fs.readFile((await download.path())!);
+  expect(bytes.length).toBeGreaterThan(10000);
+  expect(bytes.subarray(1, 4).toString()).toBe('PNG');
+  expect(bytes.readUInt32BE(16)).toBeGreaterThan(2500);
+  await download.saveAs(testInfo.outputPath('escala.png'));
+  await expect(page.getByRole('button', { name: 'Exportar.' })).toBeEnabled();
   await page.screenshot({ path: testInfo.outputPath('app.png'), fullPage: true });
 });
 
@@ -114,14 +103,14 @@ test('AI edits use existing IDs and show errors without changing events', async 
     return route.fulfill({ json: { message: 'Culto atualizado', updatedEvents: [{ ...event, leader: 'Raquel' }] } });
   });
   await page.getByRole('button', { name: 'IA', exact: true }).click();
-  await page.getByPlaceholder('Ex: Gere escala de Janeiro...').fill('Troque Teresa por Raquel no dia 4');
+  await page.getByPlaceholder('Qual escala devo gerar?').fill('Troque Teresa por Raquel no dia 4');
   await page.getByRole('button', { name: 'Enviar mensagem' }).click();
   await expect(page.getByText('Culto atualizado', { exact: true })).toBeVisible();
   let saved = await page.evaluate(() => JSON.parse(localStorage.getItem('cultogen_state_v1')!));
   expect(saved.events.length).toBe(initial.events.length);
   expect(saved.events.find(e => e.id === 'jan-04').leader).toBe('Raquel');
   await page.route('**/api/generate', route => route.fulfill({ status: 429, json: { error: 'Limite de uso da IA atingido.' } }));
-  await page.getByPlaceholder('Ex: Gere escala de Janeiro...').fill('Novo pedido');
+  await page.getByPlaceholder('Qual escala devo gerar?').fill('Novo pedido');
   await page.getByRole('button', { name: 'Enviar mensagem' }).click();
   await expect(page.getByText('Limite de uso da IA atingido.', { exact: true })).toBeVisible();
   const unchanged = await page.evaluate(() => JSON.parse(localStorage.getItem('cultogen_state_v1')!).events);

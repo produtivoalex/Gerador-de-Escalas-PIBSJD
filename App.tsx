@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Download, Image, ZoomIn, ZoomOut, Settings, MessageSquare, Maximize, Move } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Image, ZoomIn, ZoomOut, Settings, MessageSquare, Maximize, Move } from 'lucide-react';
 import CalendarGrid from './components/CalendarGrid';
 import ChatPanel from './components/ChatPanel';
 import DesignPanel from './components/DesignPanel';
@@ -160,15 +160,15 @@ const App: React.FC<{ cloud?: CloudSession; onLogout?: () => void }> = ({ cloud,
     } finally { setIsAiLoading(false); }
   };
 
-  const handleExport = async (format: 'png' | 'pdf') => {
+  const handleExport = async () => {
     const element = document.getElementById('printable-content');
     if (!element || isDownloading) return;
     setIsDownloading(true);
     try {
       const { exportSchedule } = await import('./services/exportSchedule');
-      await exportSchedule(element, currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }), format);
+      await exportSchedule(element, currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }), 'png');
     } catch {
-      setNotice('Não foi possível exportar ' + format.toUpperCase() + '. Tente novamente.');
+      setNotice('Não foi possível exportar. Tente novamente.');
     } finally { setIsDownloading(false); }
   };
 
@@ -206,11 +206,8 @@ const App: React.FC<{ cloud?: CloudSession; onLogout?: () => void }> = ({ cloud,
           <button onClick={() => setActiveSidebar(activeSidebar === 'chat' ? 'none' : 'chat')} className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold uppercase transition-all ${activeSidebar === 'chat' ? 'bg-primary text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><MessageSquare size={16} /> IA</button>
           <button onClick={() => setActiveSidebar(activeSidebar === 'design' ? 'none' : 'design')} className={`px-3 py-1.5 rounded-lg flex items-center gap-2 text-xs font-bold uppercase transition-all ${activeSidebar === 'design' ? 'bg-primary text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}><Settings size={16} /> Visual</button>
           <div className="w-px h-6 bg-gray-200 mx-1"></div>
-          <button onClick={() => handleExport('png')} disabled={isDownloading} title="Exportar imagem PNG de alta resolução para WhatsApp e redes" className="px-4 py-2 bg-emerald-700 text-white rounded-lg flex items-center gap-2 text-xs font-bold uppercase hover:bg-emerald-800 disabled:opacity-50 transition-colors shadow-sm">
-            <Image size={14} /> {isDownloading ? 'Gerando...' : 'Exportar PNG'}
-          </button>
-          <button onClick={() => handleExport('pdf')} disabled={isDownloading} title="Exportar documento PDF em tamanho A4 para impressão" className="px-4 py-2 bg-gray-900 text-white rounded-lg flex items-center gap-2 text-xs font-bold uppercase hover:bg-black disabled:opacity-50 transition-colors shadow-sm">
-            <Download size={14} /> {isDownloading ? 'Gerando...' : 'Exportar PDF'}
+          <button onClick={handleExport} disabled={isDownloading} title="Exportar imagem da escala" className="px-4 py-2 bg-emerald-700 text-white rounded-lg flex items-center gap-2 text-xs font-bold uppercase hover:bg-emerald-800 disabled:opacity-50 transition-colors shadow-sm">
+            <Image size={14} /> {isDownloading ? 'Gerando...' : 'Exportar.'}
           </button>
         </div>
       </header>
@@ -226,7 +223,7 @@ const App: React.FC<{ cloud?: CloudSession; onLogout?: () => void }> = ({ cloud,
           <button onClick={() => setActiveSidebar('none')} className="p-2 border-b text-sm text-right">Fechar painel ×</button>
           <div className="flex-1 min-h-0">
            {activeSidebar === 'chat' ? 
-              <ChatPanel messages={messages} onSendMessage={handleSendMessage} onClearChat={() => setMessages([])} isLoading={isAiLoading} /> : 
+              <ChatPanel messages={messages} onSendMessage={handleSendMessage} onClearChat={() => setMessages([])} isLoading={isAiLoading} currentDate={currentDate} /> : 
               activeSidebar === 'design' ? 
               <DesignPanel 
                 config={uiConfig} 
