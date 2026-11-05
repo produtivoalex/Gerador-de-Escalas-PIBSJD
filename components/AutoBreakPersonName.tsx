@@ -39,6 +39,8 @@ export const AutoBreakPersonName: React.FC<AutoBreakPersonNameProps> = ({ label,
   });
 
   useLayoutEffect(() => {
+    if (!measureRef.current) return;
+    measureRef.current.textContent = `${label} ${name}`;
     const checkOverflow = () => {
       if (!containerRef.current || !measureRef.current) return;
       const availableWidth = containerRef.current.clientWidth;
@@ -74,12 +76,10 @@ export const AutoBreakPersonName: React.FC<AutoBreakPersonNameProps> = ({ label,
       <span
         ref={measureRef}
         aria-hidden="true"
-        className="absolute left-0 top-0 opacity-0 pointer-events-none select-none whitespace-nowrap"
+        data-probe="true"
+        className="absolute left-0 top-0 opacity-0 pointer-events-none select-none whitespace-nowrap font-bold"
         style={{ visibility: 'hidden', position: 'absolute' }}
-      >
-        <span className="font-bold mr-1 shrink-0">{label}</span>
-        <span className="font-bold uppercase">{name}</span>
-      </span>
+      />
 
       {/* Renderização com quebra de linha ativada imediatamente ao identificar corte */}
       {isCutOff ? (
