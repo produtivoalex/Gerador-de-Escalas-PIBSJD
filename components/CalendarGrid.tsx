@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { ChurchEvent, ServiceType, UIConfig } from '../types';
+import AutoBreakPersonName from './AutoBreakPersonName';
 
 interface CalendarGridProps {
   currentDate: Date;
@@ -133,16 +134,10 @@ const CalendarGrid: React.FC<CalendarGridProps> = ({
                               </div>
                               <div className="leading-snug flex flex-col gap-0.5" style={{ fontSize: `${config.fontSizeCardText}px`, color: colors.textColor }}>
                                 {event.leader && (
-                                  <div className="truncate flex items-center">
-                                    <span className="font-bold text-gray-700 mr-1 shrink-0">DIR:</span>
-                                    <span className="font-bold uppercase">{event.leader}</span>
-                                  </div>
+                                  <AutoBreakPersonName label="DIR:" name={event.leader} />
                                 )}
                                 {event.preacher && (
-                                  <div className="truncate flex items-center">
-                                    <span className="font-bold text-gray-700 mr-1 shrink-0">PREG:</span>
-                                    <span className="font-bold uppercase">{event.preacher}</span>
-                                  </div>
+                                  <AutoBreakPersonName label="PREG:" name={event.preacher} />
                                 )}
                                 {event.notes && event.notes !== 'PGMs' && (
                                   <div className="mt-1 px-1 py-0.5 bg-[#781818] text-white font-bold text-[7px] uppercase tracking-wider rounded-sm text-center">

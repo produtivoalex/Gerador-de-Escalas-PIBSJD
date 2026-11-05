@@ -22,6 +22,9 @@ dist-server/
 runtime/
 backups/
 *.tar.gz
+*.tgz
+*-inspect.json
+infra/
 
 # Editor directories and files
 .vscode/*
