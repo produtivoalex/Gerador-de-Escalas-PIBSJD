@@ -40,9 +40,9 @@ export const HARD_DEFAULT_CONFIG: UIConfig = {
   colorDomiciliarText: '#15803D',
   bgColorDomiciliar: '#F0FDF4', // Verde muito claro
 
-  colorOutroTitle: '#374151',
-  colorOutroText: '#374151',
-  bgColorOutro: '#F3F4F6'
+  colorOutroTitle: '#1D4ED8', // Azul Safira / Royal (combina com o cabeçalho e destaca)
+  colorOutroText: '#1E40AF',
+  bgColorOutro: '#EFF6FF' // Azul muito suave / pastel
 };
 
 export const INITIAL_PEOPLE = [

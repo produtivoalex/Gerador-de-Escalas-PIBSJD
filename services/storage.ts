@@ -42,6 +42,15 @@ export function loadData(storage: Pick<Storage, 'getItem'>): AppData {
   const saved = storage.getItem(STORAGE_KEY);
   if (saved !== null) {
     const data = parseAppData(JSON.parse(saved));
+    // Se o usuário ainda estiver com a paleta cinza antiga para Outros (#374151 / #F3F4F6), migra automaticamente para o novo azul
+    if (data.config.bgColorOutro === '#F3F4F6' || data.config.colorOutroTitle === '#374151') {
+      data.config.bgColorOutro = HARD_DEFAULT_CONFIG.bgColorOutro;
+      data.config.colorOutroTitle = HARD_DEFAULT_CONFIG.colorOutroTitle;
+      data.config.colorOutroText = HARD_DEFAULT_CONFIG.colorOutroText;
+      if ('setItem' in storage && typeof (storage as any).setItem === 'function') {
+        saveData(storage as any, data);
+      }
+    }
     if (storage.getItem(RECOVERED_SEPTEMBER_KEY) === '1') return data;
     const migrated = restoreSeptemberSchedule(data);
     if ('setItem' in storage && typeof storage.setItem === 'function') saveData(storage as Pick<Storage, 'setItem'> & Pick<Storage, 'getItem'>, migrated);
