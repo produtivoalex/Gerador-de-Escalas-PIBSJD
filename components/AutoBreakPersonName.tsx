@@ -88,14 +88,17 @@ export const AutoBreakPersonName: React.FC<AutoBreakPersonNameProps> = ({ label,
         {name}
       </span>
 
-      {/* Renderização com alinhamento: a quebra de linha fica exatamente ABAIXO DO NOME */}
+      {/* Renderização com alinhamento e hierarquia de cores e contraste */}
       <div className="flex items-start leading-tight">
-        <span ref={labelRef} className="font-bold text-gray-700 mr-1 shrink-0 select-none">
+        <span 
+          ref={labelRef} 
+          className="font-bold text-[#64748B] mr-1 shrink-0 select-none text-[8.5px] tracking-wider"
+        >
           {label}
         </span>
 
         {isCutOff ? (
-          <div className="flex-1 min-w-0 flex flex-col font-bold uppercase leading-tight overflow-hidden [overflow-wrap:anywhere] break-words">
+          <div className="flex-1 min-w-0 flex flex-col font-extrabold text-[#0F172A] uppercase leading-tight overflow-hidden [overflow-wrap:anywhere] break-words">
             {compound ? (
               <>
                 <span>{compound.firstPart}</span>
@@ -106,7 +109,7 @@ export const AutoBreakPersonName: React.FC<AutoBreakPersonNameProps> = ({ label,
             )}
           </div>
         ) : (
-          <span className="font-bold uppercase whitespace-nowrap overflow-hidden">
+          <span className="font-extrabold text-[#0F172A] uppercase whitespace-nowrap overflow-hidden">
             {name}
           </span>
         )}
