@@ -29,27 +29,32 @@ interface AutoBreakPersonNameProps {
 
 export const AutoBreakPersonName: React.FC<AutoBreakPersonNameProps> = ({ label, name }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const measureRef = useRef<HTMLSpanElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const probeNameRef = useRef<HTMLSpanElement>(null);
 
   const compound = splitCompoundName(name);
 
-  // Heurística inicial para renderização estável antes da medição de layout
+  // Heurística inicial ágil: se o nome tem mais de 10 caracteres ou é composto, ativa por padrão para nunca cortar
   const [isCutOff, setIsCutOff] = useState(() => {
-    return Boolean(compound && (label.length + name.length > 15));
+    return Boolean(compound || name.length > 10);
   });
 
   useLayoutEffect(() => {
-    if (!measureRef.current) return;
-    measureRef.current.textContent = `${label} ${name}`;
     const checkOverflow = () => {
-      if (!containerRef.current || !measureRef.current) return;
-      const availableWidth = containerRef.current.clientWidth;
-      const singleLineWidth = measureRef.current.scrollWidth;
+      if (!containerRef.current || !probeNameRef.current) return;
+      
+      const containerWidth = containerRef.current.clientWidth;
+      if (containerWidth === 0) return;
 
-      if (availableWidth === 0) return;
+      const labelWidth = labelRef.current ? labelRef.current.offsetWidth : 28;
+      // Espaço disponível exclusivamente para o nome ao lado do rótulo
+      const availableForName = containerWidth - labelWidth - 4; // 4px de margem do mr-1
+      
+      // Largura que o nome completo precisaria em linha única sem quebra
+      const requiredNameWidth = probeNameRef.current.scrollWidth;
 
-      // Identifica automaticamente se a versão em linha única ultrapassa o espaço disponível (cortada)
-      const cutOff = singleLineWidth > (availableWidth - 1);
+      // Se o nome não couber confortavelmente ao lado do DIR/PREG, ativa imediatamente a quebra
+      const cutOff = requiredNameWidth > availableForName;
       setIsCutOff(cutOff);
     };
 
@@ -72,44 +77,44 @@ export const AutoBreakPersonName: React.FC<AutoBreakPersonNameProps> = ({ label,
 
   return (
     <div ref={containerRef} className="relative w-full min-w-0" data-cutoff={isCutOff ? 'true' : 'false'}>
-      {/* Sonda invisível de medição para identificar automaticamente se o nome em linha única seria cortado */}
+      {/* Sonda invisível precisa para medir a largura real necessária pelo NOME em linha única */}
       <span
-        ref={measureRef}
+        ref={probeNameRef}
         aria-hidden="true"
         data-probe="true"
-        className="absolute left-0 top-0 opacity-0 pointer-events-none select-none whitespace-nowrap font-bold"
+        className="absolute left-0 top-0 opacity-0 pointer-events-none select-none whitespace-nowrap font-bold uppercase"
         style={{ visibility: 'hidden', position: 'absolute' }}
-      />
+      >
+        {name}
+      </span>
 
-      {/* Renderização com quebra de linha ativada imediatamente ao identificar corte */}
-      {isCutOff ? (
-        <div className="leading-tight text-left break-words overflow-hidden [overflow-wrap:anywhere]">
-          {compound ? (
-            <>
-              <div className="flex items-baseline flex-wrap">
-                <span className="font-bold text-gray-700 mr-1 shrink-0">{label}</span>
-                <span className="font-bold uppercase">{compound.firstPart}</span>
-              </div>
-              <div className="font-bold uppercase leading-tight pl-0.5">
-                {compound.secondPart}
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col">
-              <span className="font-bold text-gray-700 shrink-0 leading-tight">{label}</span>
-              <span className="font-bold uppercase leading-tight [overflow-wrap:anywhere] break-words">{name}</span>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="flex items-center leading-snug whitespace-nowrap overflow-hidden">
-          <span className="font-bold text-gray-700 mr-1 shrink-0">{label}</span>
-          <span className="font-bold uppercase">{name}</span>
-        </div>
-      )}
+      {/* Renderização com alinhamento: a quebra de linha fica exatamente ABAIXO DO NOME */}
+      <div className="flex items-start leading-tight">
+        <span ref={labelRef} className="font-bold text-gray-700 mr-1 shrink-0 select-none">
+          {label}
+        </span>
+
+        {isCutOff ? (
+          <div className="flex-1 min-w-0 flex flex-col font-bold uppercase leading-tight overflow-hidden [overflow-wrap:anywhere] break-words">
+            {compound ? (
+              <>
+                <span>{compound.firstPart}</span>
+                <span className="leading-tight">{compound.secondPart}</span>
+              </>
+            ) : (
+              <span className="[overflow-wrap:anywhere] break-words">{name}</span>
+            )}
+          </div>
+        ) : (
+          <span className="font-bold uppercase whitespace-nowrap overflow-hidden">
+            {name}
+          </span>
+        )}
+      </div>
     </div>
   );
 };
 
 export default AutoBreakPersonName;
+
 
