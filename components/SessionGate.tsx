@@ -15,14 +15,26 @@ export default function SessionGate() {
   const [busy, setBusy] = useState(false);
   async function check() {
     try {
-      const identity = await cloudRequest('/api/session');
+      const response = await fetch('/api/session', { signal: AbortSignal.timeout(5000) });
+      const contentType = response.headers.get('content-type') || '';
+      
+      // Se a rota retornar HTML (como no Cloudflare Pages/SPA sem backend VPS) ou 404, entra em modo local
+      if (!contentType.includes('application/json') || response.status === 404) {
+        setMode('local');
+        return;
+      }
+
+      const identity = await response.json();
       if (identity.enabled === false) { setMode('local'); return; }
       setSetupRequired(!!identity.setupRequired); setRecoveryEmail(identity.recoveryEmail || '');
       if (identity.setupSession) { setMode('new-pin'); return; }
       if (!identity.username) { setMode('login'); return; }
       const state = await cloudRequest('/api/state');
       setSession({ ...state, username: identity.username }); setMode('cloud'); setError('');
-    } catch { setError('Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.'); }
+    } catch { 
+      // Se não houver servidor de login (ex: Cloudflare Pages estático), abre direto o aplicativo local
+      setMode('local'); 
+    }
   }
   useEffect(() => { check(); }, []);
   async function login(event: React.FormEvent) {
